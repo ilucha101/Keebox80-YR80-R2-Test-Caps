@@ -1,0 +1,3 @@
+UF2 Bootloader v2.1.1-dirty
+Model: YRKB_UPDATE
+Board-ID: YRKB_UPDATE_F1

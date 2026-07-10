@@ -1,0 +1,9 @@
+Root package for Keebox YR80 R2 Vial firmware, name-fixed and RGB pin candidate A15.
+
+Important files:
+.github/workflows/build-keebox-yr80-r2-vial.yml
+keyboards/keebox/info.json
+keyboards/keebox/yr80_r2/keymaps/vial/config.h
+keyboards/keebox/yr80_r2/keymaps/vial/keymap.c
+keyboards/keebox/yr80_r2/keymaps/vial/rules.mk
+keyboards/keebox/yr80_r2/keymaps/vial/vial.json
