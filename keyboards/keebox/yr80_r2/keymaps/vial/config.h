@@ -25,6 +25,9 @@
 // - static gradient
 // - rainbow swirl (animated gradient moving across the LED order)
 // Removed to save flash: breathing, rainbow mood, snake, knight, christmas, etc.
+#define RGBLIGHT_EFFECT_STATIC_GRADIENT
+#define RGBLIGHT_EFFECT_RAINBOW_SWIRL
+
 #undef RGBLIGHT_EFFECT_ALTERNATING
 #undef RGBLIGHT_EFFECT_BREATHING
 #undef RGBLIGHT_EFFECT_CHRISTMAS
