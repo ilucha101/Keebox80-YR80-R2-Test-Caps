@@ -1,0 +1,109 @@
+name: Build Keebox YR80 R2 Vial UF2
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'keyboards/**'
+      - '.github/workflows/build-keebox-yr80-r2-vial.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git rsync python3 python3-pip gcc-arm-none-eabi binutils-arm-none-eabi libnewlib-arm-none-eabi
+          python3 -m pip install --user qmk
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Clone Vial-QMK
+        run: |
+          git clone --depth 1 --branch vial https://github.com/vial-kb/vial-qmk.git
+          cd vial-qmk
+          git submodule sync --recursive
+          git submodule update --init --recursive --depth 1 || git submodule update --init --recursive
+
+      - name: Create Keebox YR80 R2 target from upstream base
+        run: |
+          mkdir -p vial-qmk/keyboards/keebox
+          SRC_BASE="vial-qmk/keyboards/yan""drstudio/yr80"
+          cp -R "$SRC_BASE" vial-qmk/keyboards/keebox/yr80_r2
+          python3 - <<'PYEDIT'
+          import json
+          from pathlib import Path
+
+          p = Path('vial-qmk/keyboards/keebox/yr80_r2/keyboard.json')
+          data = json.loads(p.read_text())
+
+          data['keyboard_name'] = 'YR80 R2'
+          data['bootloader'] = 'uf2boot'
+          data['processor'] = 'STM32F103'
+          data.setdefault('usb', {})['pid'] = '0xAA0D'
+          data.setdefault('usb', {})['device_version'] = '1.0.0'
+
+          # Keebox YR80 R2 / PTG80B matrix pins recovered from the original CURRENT.UF2.
+          data['matrix_pins'] = {
+              'cols': ['B3','B4','B5','A3','A4','A5','A6','B14','B13','B12','B11','B10','B2','B1','B15','A8','A9'],
+              'rows': ['B6','A0','A1','A2','A7','B7'],
+          }
+
+          data.setdefault('features', {})['bootmagic'] = True
+          data.setdefault('features', {})['extrakey'] = True
+          data.setdefault('features', {})['mousekey'] = False
+          data.setdefault('features', {})['nkro'] = False
+          data.setdefault('features', {})['rgblight'] = True
+
+          # IMPORTANT:
+          # Upstream yandrstudio/yr80 uses WS2812 on A7, but Keebox YR80 R2 uses A7 as a matrix row.
+          # B0 made the indicator LEDs appear stuck on this PCB, so it is not used for RGB.
+          # A10 is the RGB data-pin candidate for Keebox YR80 R2 / PTG80B in this test build.
+          data['ws2812'] = {'pin': 'A10', 'driver': 'bitbang'}
+          data['rgblight'] = {
+              'led_count': 8,
+              'animations': {
+                  'static_gradient': True,
+                  'rainbow_swirl': True,
+              },
+              'default': {
+                  'animation': 'static_gradient',
+              },
+              'layers': {
+                  'enabled': False,
+                  'override_rgb': False,
+              },
+          }
+
+          p.write_text(json.dumps(data, indent=4) + '\n')
+          PYEDIT
+
+      - name: Apply Keebox YR80 R2 overlay
+        run: rsync -av keyboards/ vial-qmk/keyboards/
+
+      - name: Install Python requirements
+        working-directory: vial-qmk
+        run: python3 -m pip install --user -r requirements.txt
+
+      - name: Compile Vial UF2 firmware
+        working-directory: vial-qmk
+        run: qmk compile -kb keebox/yr80_r2 -km vial
+
+      - name: Collect firmware artifact
+        run: |
+          mkdir -p artifacts
+          find vial-qmk -type f \( -name "*.uf2" -o -name "*.bin" -o -name "*.hex" \) -print
+          UF2_FILE=$(find vial-qmk -type f -name "*.uf2" | head -n 1)
+          if [ -z "$UF2_FILE" ]; then echo "No UF2 file generated"; exit 1; fi
+          cp -v "$UF2_FILE" artifacts/keebox_yr80_r2_vial.uf2
+          ls -lah artifacts
+
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: keebox-yr80-r2-vial-uf2
+          path: artifacts/*
+          if-no-files-found: error
