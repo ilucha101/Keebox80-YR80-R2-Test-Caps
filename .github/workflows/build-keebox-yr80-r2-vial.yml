@@ -67,7 +67,6 @@ jobs:
               'led_count': 8,
               'animations': {
                   'static_gradient': True,
-                  'rainbow_mood': True,
                   'rainbow_swirl': True,
               },
               'default': {
