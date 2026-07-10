@@ -1,5 +1,3 @@
-# Keebox YR80 R2 Vial firmware — final mood+swirl build
-
 Root overlay repo for GitHub Actions.
 
 Final confirmed hardware settings:
